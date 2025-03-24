@@ -72,6 +72,9 @@ if "prompt_text" not in st.session_state:
 if "lucky_clicked" not in st.session_state:
     st.session_state["lucky_clicked"] = False
 
+if "previous_query" not in st.session_state:
+    st.session_state["previous_query"] = None
+
 # --- Prompt Form ---
 with st.form("prompt_form"):
     prompt = st.text_input(
@@ -121,10 +124,22 @@ if submitted and prompt.strip():
             "prompt": prompt
         }
 
+        # Add contextQuery if we have a previous query
+        if st.session_state["previous_query"] is not None:
+            # First stringify the query object
+            query_json = json.dumps({"query": st.session_state["previous_query"]})
+            data["contextQuery"] = query_json
+
         with st.spinner("thinking..."):
             response = requests.post(gen_url, headers=headers, json=data)
             response.raise_for_status()
             query_dict = response.json()
+            
+            # Store only the query part for future context
+            if "query" in query_dict and isinstance(query_dict["query"], dict):
+                st.session_state["previous_query"] = query_dict["query"]
+            else:
+                st.session_state["previous_query"] = None
 
 
 
@@ -186,11 +201,6 @@ if submitted and prompt.strip():
             mime="text/csv"
         )
 
-    # Optional Debug Info
-        # with st.expander("🪲 Debug info (generated query JSON)", expanded=False):
-        #   st.json(query_dict)
-  
-  
     except requests.exceptions.RequestException as e:
         st.error(f"❌ Failed to generate query: {e}")
     except Exception as e:
