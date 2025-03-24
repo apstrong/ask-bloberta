@@ -41,8 +41,6 @@ st.markdown("""
         border-radius: 10px;
         overflow: hidden;
     }
- 
-
     </style>
 """, unsafe_allow_html=True)
 
@@ -62,7 +60,9 @@ example_prompts = [
     "Highest margin products",
     "Lowest margin products",
     "Worst selling products past 30 days",
-    "Best selling products past 30 days"
+    "Best selling products past 30 days",
+    "Total orders on the east coast by state",
+    "Total orders on the west coast by state"
 ]
 
 # Initialize prompt session state
@@ -186,21 +186,53 @@ if submitted and prompt.strip():
 
 
         if not df.empty:
-            # st.success("✅ Query successful!")
             df.index = df.index + 1
+
+            # Display active filters and fields
+            if "query" in query_dict:
+                query = query_dict["query"]
+                with st.expander("🔍 Query Details", expanded=False):
+                    # Show fields (dimensions and measures)
+                    if "fields" in query:
+                        fields = query.get("fields", [])
+                        if fields:
+                            st.markdown("**Fields Used:**")
+                            for field in fields:
+                                st.write(f"• {field}")
+                            st.markdown("---")
+
+                    # Show filters
+                    filters = query.get("filters", {})
+                    if filters:
+                        st.markdown("**Filters Applied:**")
+                        for field, filter_info in filters.items():
+                            filter_type = filter_info.get("kind", "")
+                            values = filter_info.get("values", [])
+                            is_negative = filter_info.get("is_negative", False)
+                            
+                            # Format the filter description
+                            operator = "is not" if is_negative else "is"
+                            if isinstance(values, list):
+                                values_str = ", ".join([str(v) for v in values])
+                            else:
+                                values_str = str(values)
+                            
+                            st.write(f"• {field} {operator} {filter_type.lower()} {values_str}")
+
+            # Display results table
             st.dataframe(df, use_container_width=True)
+
+            # Export to CSV
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="💾 Download CSV if you must",
+                data=csv,
+                file_name="query_results.csv",
+                mime="text/csv"
+            )
         else:
             st.warning("Query ran successfully but returned no data.")
     
-        # Export to CSV
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="💾 Download CSV if you must",
-            data=csv,
-            file_name="query_results.csv",
-            mime="text/csv"
-        )
-
     except requests.exceptions.RequestException as e:
         st.error(f"❌ Failed to generate query: {e}")
     except Exception as e:
