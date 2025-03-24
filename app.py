@@ -111,7 +111,10 @@ if submitted and prompt.strip():
     try:
         # Step 1: Call Omni prompt-to-query API
         gen_url = f"{base_url}/api/unstable/ai/generate-query"
-        headers = {"Authorization": f"Bearer {api_key}"}
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
         data = {
             "currentTopicName": topic,
             "modelId": model_id,
@@ -119,7 +122,7 @@ if submitted and prompt.strip():
         }
 
         with st.spinner("thinking..."):
-            response = requests.post(gen_url, headers=headers, data=data)
+            response = requests.post(gen_url, headers=headers, json=data)
             response.raise_for_status()
             query_dict = response.json()
 
