@@ -290,12 +290,14 @@ with st.form("prompt_form"):
         key="prompt_input"
     )
 
-    # Button layout
-    col1, col2, col3 = st.columns([6, 2, 3])  # Adjust weights as needed
+    # Create columns for the buttons, left-aligned
+    col1, col2, col3 = st.columns([4, 4, 8])
     with col1:
-        submitted = st.form_submit_button("✨Let's go✨")
+        submitted = st.form_submit_button("✨Let's go✨", use_container_width=True)
+    with col2:
+        lucky = st.form_submit_button("🎲 I'm Feeling Lucky", use_container_width=True)
     with col3:
-        lucky = st.form_submit_button("🎲 I'm Feeling Lucky")
+        st.write("")  # Empty space
 
 # If lucky clicked, pick a random prompt from the current dataset
 if lucky:
