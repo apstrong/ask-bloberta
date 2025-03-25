@@ -13,9 +13,32 @@ load_dotenv()
 api_key = os.getenv("OMNI_API_KEY")
 base_url = os.getenv("OMNI_BASE_URL")
 
+# Define blob names for the title
+BLOB_NAMES = [
+    "Bloberta",
+    "Blobby",
+    "Bloberton",
+    "Blobsworth",
+    "Sir Blobsalot",
+    "Blobzilla",
+    "Professor Blob",
+    "Blobinator",
+    "Captain Blob",
+    "Blob Ross",  # A happy little blob
+    "Blobastian",
+    "Bloberto",
+    "Lady Blobington",
+    "Dr. Blob, PhD",
+    "Blob Marley"
+]
+
+# Initialize session state for blob name
+if "blob_name" not in st.session_state:
+    st.session_state.blob_name = random.choice(BLOB_NAMES)
+
 # Page config
 st.set_page_config(
-    page_title="Ask Bloberta",
+    page_title=f"Ask {st.session_state.blob_name}",
     page_icon="🤖",
     layout="wide"
 )
@@ -111,7 +134,7 @@ st.markdown("""
 
 # --- UI Layout ---
 
-st.title("Ask Bloberta 🤖")
+st.title(f"Ask {st.session_state.blob_name} 🤖")
 
 # Dataset selector using buttons in columns
 st.write("#### What do you want to learn about?")
