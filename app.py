@@ -192,14 +192,18 @@ if submitted and prompt.strip():
                 # 💵 Format sale price columns as USD
                 def format_currency_columns(df):
                     for col in df.columns:
-                        if any(keyword in col.lower() for keyword in ["sale price", "margin"]):
-                            df[col] = df[col].apply(lambda x: f"${x:,.2f}" if pd.notnull(x) else x)
+                        col_lower = col.lower().replace(" ", "_")  # Normalize column names for checking
+                        if any(keyword in col_lower for keyword in ["sale_price", "margin"]):
+                            df[col] = df[col].apply(lambda x: f"${float(str(x).replace(',', '').replace('$', '')):,.2f}" if pd.notnull(x) else x)
+                        elif "total_orders" in col_lower or "total_order" in col_lower:  # Handle variations
+                            df[col] = df[col].apply(lambda x: f"{int(float(str(x).replace(',', '').replace('$', ''))):,}" if pd.notnull(x) else x)
                     return df
 
                 df = clean_dataframe(df)
                 df = format_currency_columns(df)
 
 
+            # Display the results
             if not df.empty:
                 df.index = df.index + 1
 
@@ -234,8 +238,30 @@ if submitted and prompt.strip():
                                 
                                 st.write(f"• {field} {operator} {filter_type.lower()} {values_str}")
 
-                # Display results table
-                st.dataframe(df, use_container_width=True)
+                # If there's only one row and one column, display it in a card format
+                if df.shape == (1, 1):
+                    value = df.iloc[0, 0]
+                    column_name = df.columns[0]
+                    col_lower = column_name.lower().replace(" ", "_")  # Normalize for checking
+                    
+                    # Format the value based on column name
+                    if "total_orders" in col_lower or "total_order" in col_lower:
+                        formatted_value = f"{int(float(str(value).replace(',', '').replace('$', ''))):,}" if pd.notnull(value) else value
+                    elif any(keyword in col_lower for keyword in ["sale_price", "margin"]):
+                        formatted_value = f"${float(str(value).replace(',', '').replace('$', '')):,.2f}" if pd.notnull(value) else value
+                    else:
+                        formatted_value = value
+                        
+                    st.markdown(f"""
+                        <div style="padding: 2rem; background-color: #f0f2f6; border-radius: 10px; text-align: center;">
+                            <h1 style="font-size: 2rem; margin-bottom: 1rem;">{formatted_value}</h1>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.dataframe(df, use_container_width=True)
+
+                # Add vertical spacing
+                st.markdown("<br><br>", unsafe_allow_html=True)
 
                 # Export to CSV
                 csv = df.to_csv(index=False).encode("utf-8")
