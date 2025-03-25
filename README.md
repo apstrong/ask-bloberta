@@ -91,7 +91,7 @@ http://localhost:8502
 ## 🛠️ Tech Stack
 
 - [Streamlit](https://streamlit.io/) - The web framework
-- [Omni Python SDK](https://docs.omni.ai/) - AI-powered data querying
+- [Omni APIs](https://docs.omni.co/docs/API/overview) - AI-powered data querying
 - [Pandas](https://pandas.pydata.org/) - Data manipulation and analysis
 
 ## 📝 Environment Variables
