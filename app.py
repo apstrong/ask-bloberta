@@ -134,7 +134,6 @@ st.markdown("""
 
 # --- UI Layout ---
 
-st.markdown("### built on vibes by cursor")
 st.title(f"Ask {st.session_state.blob_name} 🤖")
 
 # Dataset selector using buttons in columns
