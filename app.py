@@ -160,8 +160,7 @@ client = OmniAPI(api_key, base_url=base_url)
 
 def query_data(prompt):
     try:
-        # Use the current dataset's topic and model_id
-        current_dataset = DATASETS[st.session_state.selected_dataset]
+        # Prepare the request data
         data = {
             "currentTopicName": current_dataset["topic"],
             "modelId": current_dataset["model_id"],
@@ -174,7 +173,11 @@ def query_data(prompt):
             query_json = json.dumps({"query": st.session_state["previous_query"]})
             data["contextQuery"] = query_json
 
-        response = requests.post(f"{base_url}/api/unstable/ai/generate-query", headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, json=data)
+        # Generate query using the API
+        response = requests.post(f"{base_url}/api/unstable/ai/generate-query", 
+                               headers={"Authorization": f"Bearer {api_key}", 
+                                      "Content-Type": "application/json"}, 
+                               json=data)
         response.raise_for_status()
         query_dict = response.json()
         
@@ -184,15 +187,19 @@ def query_data(prompt):
         else:
             st.session_state["previous_query"] = None
 
-        # Step 2: Run query using SDK
+        # Execute the query using SDK
         query_result = client.run_query_blocking(query_dict)
-
+        
         if query_result is None:
             st.error("❌ Query failed: No result returned from Omni.")
-        else:
-            result, _ = query_result
-            df = result.to_pandas()
-            st.session_state["df"] = df
+            return
+            
+        result, _ = query_result
+        df = result.to_pandas()
+
+        # Display the results
+        if not df.empty:
+            df.index = df.index + 1
 
             # Clean up Omni query result DataFrame
             def clean_dataframe(df):
@@ -225,10 +232,6 @@ def query_data(prompt):
 
             df = clean_dataframe(df)
             df = format_currency_columns(df)
-
-        # Display the results
-        if not df.empty:
-            df.index = df.index + 1
 
             # If there's only one row and one column, display it in a card format
             if df.shape == (1, 1):
@@ -282,9 +285,6 @@ def query_data(prompt):
                                 values_str = str(values)
                             
                             st.write(f"• {field} {operator} {filter_type.lower()} {values_str}")
-
-            # Add vertical spacing
-            st.markdown("<br><br>", unsafe_allow_html=True)
 
             # Export to CSV
             csv = df.to_csv(index=False).encode("utf-8")
