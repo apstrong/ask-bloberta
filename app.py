@@ -45,7 +45,7 @@ st.set_page_config(
 
 # Define available datasets
 DATASETS = {
-    "eCommerce Store Sales": {
+    "eCommerce Store": {
         "topic": "orders_ai",
         "model_id": "8b776a55-748b-455c-a9fc-d54791301e95",
         "description": "Ask questions about sales, orders, and revenue",
@@ -54,7 +54,6 @@ DATASETS = {
             "What are the top 10 products by sales?",
             "How many users signed up this month?",
             "Which state has the most orders?",
-            "Show me all our open orders",
             "Top users",
             "Highest margin products",
             "Lowest margin products",
@@ -66,7 +65,7 @@ DATASETS = {
             "Performance by channel"
         ]
     },
-    "World Happiness Data": {
+    "World Happiness": {
         "topic": "world_happiness_data",
         "model_id": "4132be68-3537-4089-9ae4-bbbaec65cc30",
         "description": "Explore measures of world happiness",
@@ -98,7 +97,7 @@ DATASETS = {
 
 # Initialize session state
 if "selected_dataset" not in st.session_state:
-    st.session_state.selected_dataset = "eCommerce Store Sales"
+    st.session_state.selected_dataset = "eCommerce Store"
 
 if "prompt_text" not in st.session_state:
     st.session_state["prompt_text"] = ""
@@ -134,35 +133,34 @@ st.markdown("""
 
 # --- UI Layout ---
 
-st.title(f"Ask {st.session_state.blob_name} 🤖")
+# Create a header row with title and dataset selector
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.title(f"Ask {st.session_state.blob_name} 🤖")
+with col2:
+    selected_dataset = st.selectbox(
+        "",  # Empty label
+        options=list(DATASETS.keys()),
+        index=list(DATASETS.keys()).index(st.session_state.selected_dataset),
+        key="dataset_selector"
+    )
 
-# Dataset selector using buttons in columns
-st.write("#### What do you want to learn about?")
-cols = st.columns(len(DATASETS))
-for col, (dataset_name, dataset_info) in zip(cols, DATASETS.items()):
-    if col.button(
-        dataset_name,
-        type="primary" if st.session_state.selected_dataset == dataset_name else "secondary",
-        use_container_width=True
-    ):
-        st.session_state.selected_dataset = dataset_name
-        # Clear prompt and previous query when switching datasets
-        st.session_state["prompt_text"] = ""
-        st.session_state["previous_query"] = None
-        st.rerun()
+# Update selected dataset if changed
+if selected_dataset != st.session_state.selected_dataset:
+    st.session_state.selected_dataset = selected_dataset
+    st.session_state["prompt_text"] = ""
+    st.session_state["previous_query"] = None
+    st.rerun()
 
 # Show current dataset info
 current_dataset = DATASETS[st.session_state.selected_dataset]
-# st.markdown(f"**Currently exploring:** {st.session_state.selected_dataset} - {current_dataset['description']}")
-# st.markdown("---")
 
 # Initialize Omni client
 client = OmniAPI(api_key, base_url=base_url)
 
 def query_data(prompt):
     try:
-        # Use the current dataset's topic and model_id
-        current_dataset = DATASETS[st.session_state.selected_dataset]
+        # Prepare the request data
         data = {
             "currentTopicName": current_dataset["topic"],
             "modelId": current_dataset["model_id"],
@@ -175,26 +173,33 @@ def query_data(prompt):
             query_json = json.dumps({"query": st.session_state["previous_query"]})
             data["contextQuery"] = query_json
 
-        with st.spinner("thinking..."):
-            response = requests.post(f"{base_url}/api/unstable/ai/generate-query", headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, json=data)
-            response.raise_for_status()
-            query_dict = response.json()
-            
-            # Store only the query part for future context
-            if "query" in query_dict and isinstance(query_dict["query"], dict):
-                st.session_state["previous_query"] = query_dict["query"]
-            else:
-                st.session_state["previous_query"] = None
+        # Generate query using the API
+        response = requests.post(f"{base_url}/api/unstable/ai/generate-query", 
+                               headers={"Authorization": f"Bearer {api_key}", 
+                                      "Content-Type": "application/json"}, 
+                               json=data)
+        response.raise_for_status()
+        query_dict = response.json()
+        
+        # Store only the query part for future context
+        if "query" in query_dict and isinstance(query_dict["query"], dict):
+            st.session_state["previous_query"] = query_dict["query"]
+        else:
+            st.session_state["previous_query"] = None
 
-        # Step 2: Run query using SDK
+        # Execute the query using SDK
         query_result = client.run_query_blocking(query_dict)
-
+        
         if query_result is None:
             st.error("❌ Query failed: No result returned from Omni.")
-        else:
-            result, _ = query_result
-            df = result.to_pandas()
-            st.session_state["df"] = df
+            return
+            
+        result, _ = query_result
+        df = result.to_pandas()
+
+        # Display the results
+        if not df.empty:
+            df.index = df.index + 1
 
             # Clean up Omni query result DataFrame
             def clean_dataframe(df):
@@ -228,11 +233,29 @@ def query_data(prompt):
             df = clean_dataframe(df)
             df = format_currency_columns(df)
 
-        # Display the results
-        if not df.empty:
-            df.index = df.index + 1
+            # If there's only one row and one column, display it in a card format
+            if df.shape == (1, 1):
+                value = df.iloc[0, 0]
+                column_name = df.columns[0]
+                col_lower = column_name.lower().replace(" ", "_")  # Normalize for checking
+                
+                # Format the value based on column name
+                if "total_orders" in col_lower or "total_order" in col_lower:
+                    formatted_value = f"{int(float(str(value).replace(',', '').replace('$', ''))):,}" if pd.notnull(value) else value
+                elif any(keyword in col_lower for keyword in ["sale_price", "margin"]):
+                    formatted_value = f"${float(str(value).replace(',', '').replace('$', '')):,.2f}" if pd.notnull(value) else value
+                else:
+                    formatted_value = value
+                    
+                st.markdown(f"""
+                    <div style="padding: 2rem; background-color: #f0f2f6; border-radius: 10px; text-align: center;">
+                        <h1 style="font-size: 2rem; margin-bottom: 1rem;">{formatted_value}</h1>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.dataframe(df, use_container_width=True)
 
-            # Display active filters and fields
+            # Display query details before the download button
             if "query" in query_dict:
                 query = query_dict["query"]
                 with st.expander("🔍 Query Details", expanded=False):
@@ -263,42 +286,17 @@ def query_data(prompt):
                             
                             st.write(f"• {field} {operator} {filter_type.lower()} {values_str}")
 
-            # If there's only one row and one column, display it in a card format
-            if df.shape == (1, 1):
-                value = df.iloc[0, 0]
-                column_name = df.columns[0]
-                col_lower = column_name.lower().replace(" ", "_")  # Normalize for checking
-                
-                # Format the value based on column name
-                if "total_orders" in col_lower or "total_order" in col_lower:
-                    formatted_value = f"{int(float(str(value).replace(',', '').replace('$', ''))):,}" if pd.notnull(value) else value
-                elif any(keyword in col_lower for keyword in ["sale_price", "margin"]):
-                    formatted_value = f"${float(str(value).replace(',', '').replace('$', '')):,.2f}" if pd.notnull(value) else value
-                else:
-                    formatted_value = value
-                    
-                st.markdown(f"""
-                    <div style="padding: 2rem; background-color: #f0f2f6; border-radius: 10px; text-align: center;">
-                        <h1 style="font-size: 2rem; margin-bottom: 1rem;">{formatted_value}</h1>
-                    </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.dataframe(df, use_container_width=True)
-
-            # Add vertical spacing
-            st.markdown("<br><br>", unsafe_allow_html=True)
-
             # Export to CSV
             csv = df.to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="💾 Download CSV if you must",
+                label="⬇️ Download CSV",
                 data=csv,
                 file_name="query_results.csv",
                 mime="text/csv"
             )
         else:
             st.warning("Query ran successfully but returned no data.")
-    
+
     except requests.exceptions.RequestException as e:
         st.error(f"❌ Failed to generate query: {e}")
     except Exception as e:
@@ -328,14 +326,6 @@ if lucky:
     st.session_state["lucky_clicked"] = True
     st.rerun()
 
-# --- Advanced Settings ---
-# with st.expander("⚙️ Config", expanded=False):
-#     col1, col2 = st.columns(2)
-#     with col1:
-#         topic = st.text_input(label="", placeholder="Topic", value="orders_ai", key="topic_input")
-#     with col2:
-#         model_id = st.text_input(label="", placeholder="Model ID", value="8b776a55-748b-455c-a9fc-d54791301e95", key="model_id_input")
-
 # --- Query Flow ---
 if submitted and prompt.strip():
     # Easter egg for meaning of life
@@ -351,4 +341,14 @@ if submitted and prompt.strip():
         """, unsafe_allow_html=True)
     else:
         query_data(prompt)
+
+# Add some vertical spacing
+st.markdown("<br><br>", unsafe_allow_html=True)
+
+# Add the note at the bottom
+st.markdown("""
+    <div style="text-align: center; color: #666; font-size: 0.8rem; font-style: italic;">
+        This app was built on <a href="https://omni.co/" style="color: #666; text-decoration: none;">Omni</a>, coffee, and vibes ✨
+    </div>
+""", unsafe_allow_html=True)
         
