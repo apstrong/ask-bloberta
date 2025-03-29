@@ -62,7 +62,8 @@ DATASETS = {
             "Total orders on the east coast by state",
             "Total orders on the west coast by state",
             "What is the meaning of life?",
-            "Performance by channel"
+            "Performance by channel", 
+            "Pull a list of users between 25 and 40 on the west coast that have placed at least 3 orders"
         ]
     },
     "World Happiness": {
