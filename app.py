@@ -54,7 +54,6 @@ DATASETS = {
             "What are the top 10 products by sales?",
             "How many users signed up this month?",
             "Which state has the most orders?",
-            "Show me all our open orders",
             "Top users",
             "Highest margin products",
             "Lowest margin products",
@@ -293,7 +292,7 @@ def query_data(prompt):
             )
         else:
             st.warning("Query ran successfully but returned no data.")
-    
+
     except requests.exceptions.RequestException as e:
         st.error(f"❌ Failed to generate query: {e}")
     except Exception as e:
@@ -340,12 +339,12 @@ if submitted and prompt.strip():
         query_data(prompt)
 
 # Add some vertical spacing
-st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.markdown("<br><br>", unsafe_allow_html=True)
 
 # Add the note at the bottom
 st.markdown("""
     <div style="text-align: center; color: #666; font-size: 0.8rem; font-style: italic;">
-        Built on <a href="https://omni.co/" style="color: #666; text-decoration: none;">Omni</a> and vibes ✨
+        This app was built on <a href="https://omni.co/" style="color: #666; text-decoration: none;">Omni</a>, coffee, and vibes ✨
     </div>
 """, unsafe_allow_html=True)
         
