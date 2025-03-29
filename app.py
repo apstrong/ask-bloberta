@@ -348,7 +348,7 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 # Add the note at the bottom
 st.markdown("""
     <div style="text-align: center; color: #666; font-size: 0.8rem; font-style: italic;">
-        This app was built on <a href="https://omni.co/" style="color: #666; text-decoration: none;">Omni</a>, coffee, and vibes ✨
+        Built on <a href="https://omni.co/" style="color: #666; text-decoration: none;">Omni</a> and vibes ✨
     </div>
 """, unsafe_allow_html=True)
         
