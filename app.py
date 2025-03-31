@@ -106,9 +106,6 @@ if "prompt_text" not in st.session_state:
 if "lucky_clicked" not in st.session_state:
     st.session_state["lucky_clicked"] = False
 
-if "previous_query" not in st.session_state:
-    st.session_state["previous_query"] = None
-
 # Inject custom CSS
 st.markdown("""
     <style>
@@ -150,7 +147,6 @@ with col2:
 if selected_dataset != st.session_state.selected_dataset:
     st.session_state.selected_dataset = selected_dataset
     st.session_state["prompt_text"] = ""
-    st.session_state["previous_query"] = None
     st.rerun()
 
 # Show current dataset info
@@ -161,6 +157,11 @@ client = OmniAPI(api_key, base_url=base_url)
 
 def query_data(prompt):
     try:
+        # Check if API key and base URL are loaded
+        if not api_key or not base_url:
+            st.error("❌ Configuration error: API key or base URL not found. Please check your .env file.")
+            return
+
         # Prepare the request data
         data = {
             "currentTopicName": current_dataset["topic"],
@@ -168,25 +169,28 @@ def query_data(prompt):
             "prompt": prompt
         }
 
-        # Add contextQuery if we have a previous query
-        if st.session_state["previous_query"] is not None:
-            # First stringify the query object
-            query_json = json.dumps({"query": st.session_state["previous_query"]})
-            data["contextQuery"] = query_json
-
         # Generate query using the API
-        response = requests.post(f"{base_url}/api/unstable/ai/generate-query", 
-                               headers={"Authorization": f"Bearer {api_key}", 
-                                      "Content-Type": "application/json"}, 
-                               json=data)
-        response.raise_for_status()
+        response = requests.post(
+            f"{base_url}/api/unstable/ai/generate-query",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json=data
+        )
+
+        # Handle error responses
+        if response.status_code != 200:
+            error_message = f"❌ API Error ({response.status_code}): "
+            try:
+                error_data = response.json()
+                error_message += error_data.get("message", "Unknown error")
+            except:
+                error_message += response.text
+            st.error(error_message)
+            return
+
         query_dict = response.json()
-        
-        # Store only the query part for future context
-        if "query" in query_dict and isinstance(query_dict["query"], dict):
-            st.session_state["previous_query"] = query_dict["query"]
-        else:
-            st.session_state["previous_query"] = None
 
         # Execute the query using SDK
         query_result = client.run_query_blocking(query_dict)
