@@ -137,7 +137,7 @@ st.markdown("""
 # Create a header row with title and dataset selector
 col1, col2 = st.columns([3, 1])
 with col1:
-    st.title(f"{os.getenv('APP_TITLE', 'Golden MVP')} ✨")
+    st.title(f"Ask {st.session_state.blob_name} 🤖")
 with col2:
     selected_dataset = st.selectbox(
         "",  # Empty label
