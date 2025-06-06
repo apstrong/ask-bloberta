@@ -38,8 +38,8 @@ if "blob_name" not in st.session_state:
 
 # Page config
 st.set_page_config(
-    page_title=os.getenv("APP_TITLE", "Golden MVP"),
-    page_icon=os.getenv("APP_ICON", "✨"),
+    page_title=f"Ask {st.session_state.blob_name}",
+    page_icon="🤖",
     layout="wide"
 )
 
