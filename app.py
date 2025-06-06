@@ -38,8 +38,8 @@ if "blob_name" not in st.session_state:
 
 # Page config
 st.set_page_config(
-    page_title=f"Ask {st.session_state.blob_name}",
-    page_icon="🤖",
+    page_title=os.getenv("APP_TITLE", "Golden MVP"),
+    page_icon=os.getenv("APP_ICON", "✨"),
     layout="wide"
 )
 
@@ -48,6 +48,7 @@ DATASETS = {
     "eCommerce Store": {
         "topic": "orders_ai",
         "model_id": "8b776a55-748b-455c-a9fc-d54791301e95",
+        "connection_id": "9119ee83-ef1a-4192-a5c7-7f63288d6531",
         "description": "Ask questions about sales, orders, and revenue",
         "example_prompts": [
             "Show me total revenue by month",
@@ -69,6 +70,7 @@ DATASETS = {
     "World Happiness": {
         "topic": "world_happiness_data",
         "model_id": "4132be68-3537-4089-9ae4-bbbaec65cc30",
+        "connection_id": "b09ee2de-fdd2-4fc3-884a-4f5f7fc687d6",
         "description": "Explore measures of world happiness",
         "example_prompts": [
             "What is the happiest country?",
@@ -84,6 +86,7 @@ DATASETS = {
     "Consumer Complaints": {
         "topic": "consumer_complaints",
         "model_id": "713b9178-fd14-4e1d-be56-fdbf8f57b33c",
+        "connection_id": "b09ee2de-fdd2-4fc3-884a-4f5f7fc687d6",
         "description": "Analyze customer demographics and behavior",
         "example_prompts": [
             "How many complaints have there been?",
@@ -134,7 +137,7 @@ st.markdown("""
 # Create a header row with title and dataset selector
 col1, col2 = st.columns([3, 1])
 with col1:
-    st.title(f"Ask {st.session_state.blob_name} 🤖")
+    st.title(f"{os.getenv('APP_TITLE', 'Golden MVP')} ✨")
 with col2:
     selected_dataset = st.selectbox(
         "",  # Empty label
@@ -166,6 +169,7 @@ def query_data(prompt):
         data = {
             "currentTopicName": current_dataset["topic"],
             "modelId": current_dataset["model_id"],
+            "connectionId": current_dataset["connection_id"],
             "prompt": prompt
         }
 
